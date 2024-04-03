@@ -28,7 +28,9 @@ public:
     bool setId(int);
 
     // Utilities
-    void think();
+    bool bothForksAvailable(int); // checks to see if both forks available
+    void pickup_forks(int); // i.e. wish to eat. Sleep between 1 - 3 seconds
+    void return_forks(int); // i.e. done eating. Sleep between 1 - 3 seconds
 
 
 private:
