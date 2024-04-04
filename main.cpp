@@ -155,9 +155,15 @@ int main(){
 
     thread philosopher0(&Philosopher::philoSim, philosophersTable[0], philosophersTable[0], numCourses);
     thread philosopher1(&Philosopher::philoSim, philosophersTable[1], philosophersTable[1], numCourses);
+    thread philosopher2(&Philosopher::philoSim, philosophersTable[2], philosophersTable[2], numCourses);
+    thread philosopher3(&Philosopher::philoSim, philosophersTable[3], philosophersTable[3], numCourses);
+    thread philosopher4(&Philosopher::philoSim, philosophersTable[4], philosophersTable[4], numCourses);
 
     philosopher0.join();
     philosopher1.join();
+    philosopher2.join();
+    philosopher3.join();
+    philosopher4.join();
 
     cout << "done" << endl;
 
