@@ -46,16 +46,20 @@ bool Philosopher::bothForksAvailable(int philosopherId) {
 }
 
 void Philosopher::pickup_forks(int philosopherId) {
-    // Philosopher is hungry,
-    this->status = hungry;
+
     // try to acquire the fork to the left and the right ONLY if BOTH AVAILABLE
     bool forksAvailable = this->bothForksAvailable(philosopherId);
+
+    // Critical Section
     if(forksAvailable){
         this->forkInLeftHand = true;
         this->forkInRightHand = true;
         this->status = eating;
-        cout << "Philosopher " << philosopherId << " is eating" << endl;
+        cout << "Philosopher " << philosopherId << " is eating course " << (this->coursesConsumed + 1) << endl;
         this->coursesConsumed++;
+        // spend between 1 and 3 seconds eating
+        int eatingTime = randomRangeGen(3, 1, 42);
+        this_thread::sleep_for(chrono::seconds(eatingTime));
         this->return_forks(philosopherId);
     }
     else{
@@ -65,9 +69,27 @@ void Philosopher::pickup_forks(int philosopherId) {
 
 void Philosopher::return_forks(int philosopherId) {
     this->status = thinking;
-    cout << "Philosopher " << philosopherId << " is thinking" << endl;
+    cout << "Philosopher " << philosopherId << " is returning forks" << endl;
     forks[philosopherId]->release();
     forks[((philosopherId + 1) % NUMPHILOSOPHERS)]->release();
+}
+
+void Philosopher::philoSim(Philosopher *currentPhilo, int numCourses) {
+    while(currentPhilo->coursesConsumed < numCourses) {
+        int thinkTime = randomRangeGen(3, 1, 42);
+        currentPhilo->status = thinking;
+        // Have the Philosopher think for (1 - 3 seconds)
+        cout << "Philosopher " << currentPhilo->philosopherId << " Thinking for " << thinkTime << " seconds" << endl;
+        this_thread::sleep_for(chrono::seconds(thinkTime));
+
+        // Get Hungry
+        currentPhilo->status = hungry;
+        // Try to pickup forks, while hungry
+        while(currentPhilo->status == hungry){
+            pickup_forks(currentPhilo->philosopherId);
+        }
+    }
+    cout << "Philosopher " << currentPhilo->philosopherId << " done eating all " << numCourses << " courses" << endl;
 }
 
 int randomRangeGen(int endRange, int startRange = 0, unsigned int seed = 42) {
@@ -108,11 +130,14 @@ int main(){
         forks.push_back(fork);
     }
 
-    thread t1(&Philosopher::pickup_forks, philosophersTable[0], 0);
-    thread t2(&Philosopher::pickup_forks, philosophersTable[1], 1);
+//    thread t1(&Philosopher::pickup_forks, philosophersTable[0], 0);
+//    thread t2(&Philosopher::pickup_forks, philosophersTable[1], 1);
+    thread philosopher0(&Philosopher::philoSim, &philosophersTable[0], &philosophersTable[0], numCourses);
 
-    t1.join();
-    t2.join();
+    philosopher0.join();
+
+//    t1.join();
+//    t2.join();
     cout << "done" << endl;
 
     return 0;
