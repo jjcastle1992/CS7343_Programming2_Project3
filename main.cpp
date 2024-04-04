@@ -42,6 +42,10 @@ bool Philosopher::bothForksAvailable(int philosopherId) {
     if(leftAvailable && rightAvailable){
         bothForksAvailable = true;
     }
+    else {
+        // release the left fork
+        forks[philosopherId]->release();
+    }
     return bothForksAvailable;
 }
 
@@ -55,21 +59,21 @@ void Philosopher::pickup_forks(int philosopherId) {
         this->forkInLeftHand = true;
         this->forkInRightHand = true;
         this->status = eating;
-        cout << "Philosopher " << philosopherId << " is eating course " << (this->coursesConsumed + 1) << endl;
+        string message = "Philosopher " + to_string(philosopherId) + " is eating course " +
+                        to_string(this->coursesConsumed + 1);
+        this->atomPrint(&message);
         this->coursesConsumed++;
         // spend between 1 and 3 seconds eating
         int eatingTime = randomRangeGen(3, 1, 42);
         this_thread::sleep_for(chrono::seconds(eatingTime));
         this->return_forks(philosopherId);
     }
-    else{
-        this->timeSinceLastEaten++;
-    }
 }
 
 void Philosopher::return_forks(int philosopherId) {
     this->status = thinking;
-    cout << "Philosopher " << philosopherId << " is returning forks" << endl;
+    string message = "Philosopher " + to_string(philosopherId) + " is returning forks";
+    atomPrint(&message);
     forks[philosopherId]->release();
     forks[((philosopherId + 1) % NUMPHILOSOPHERS)]->release();
 }
@@ -79,17 +83,35 @@ void Philosopher::philoSim(Philosopher *currentPhilo, int numCourses) {
         int thinkTime = randomRangeGen(3, 1, 42);
         currentPhilo->status = thinking;
         // Have the Philosopher think for (1 - 3 seconds)
-        cout << "Philosopher " << currentPhilo->philosopherId << " Thinking for " << thinkTime << " seconds" << endl;
+        string message = "Philosopher " + to_string(currentPhilo->philosopherId) + " Thinking for " +
+                          to_string(thinkTime) + " seconds";
+        atomPrint(&message);
         this_thread::sleep_for(chrono::seconds(thinkTime));
 
         // Get Hungry
         currentPhilo->status = hungry;
         // Try to pickup forks, while hungry
+        int attempt = 0;
         while(currentPhilo->status == hungry){
+            string message = "Philo " + to_string(currentPhilo->philosopherId) + " trying to pickup forks (Attempt "
+                             + to_string(attempt) + ")";
+            atomPrint(&message);
+
             pickup_forks(currentPhilo->philosopherId);
+
+            attempt++;
+            this_thread::sleep_for(chrono::seconds(1));
         }
     }
-    cout << "Philosopher " << currentPhilo->philosopherId << " done eating all " << numCourses << " courses" << endl;
+    string message = "Philosopher " + to_string(currentPhilo->philosopherId)  + " done eating all " +
+                      to_string(numCourses) + " courses";
+    atomPrint(&message);
+}
+
+void Philosopher::atomPrint(std::string *message) {
+    // Modified with ChatGPT to atomically print
+    lock_guard<mutex> lock(outputMutex); // Lock the mutex
+    cout << *message << endl; // Print the message
 }
 
 int randomRangeGen(int endRange, int startRange = 0, unsigned int seed = 42) {
@@ -116,12 +138,12 @@ int main(){
     int numCourses = 3;
     int numForks = 5;
 
-    vector<Philosopher> philosophersTable;
+    vector<Philosopher*> philosophersTable;
     // Create 5 philosophers
     for(int i = 0; i < NUMPHILOSOPHERS; i++){
-        Philosopher *philosopher = new Philosopher;
+        auto *philosopher = new Philosopher;
         philosopher->setId(i);
-        philosophersTable.push_back(*philosopher);
+        philosophersTable.push_back(philosopher);
     }
 
     // Create the 5 forks (of which, each philosopher will require 1 in each hand to eat)
@@ -130,14 +152,13 @@ int main(){
         forks.push_back(fork);
     }
 
-//    thread t1(&Philosopher::pickup_forks, philosophersTable[0], 0);
-//    thread t2(&Philosopher::pickup_forks, philosophersTable[1], 1);
-    thread philosopher0(&Philosopher::philoSim, &philosophersTable[0], &philosophersTable[0], numCourses);
+
+    thread philosopher0(&Philosopher::philoSim, philosophersTable[0], philosophersTable[0], numCourses);
+    thread philosopher1(&Philosopher::philoSim, philosophersTable[1], philosophersTable[1], numCourses);
 
     philosopher0.join();
+    philosopher1.join();
 
-//    t1.join();
-//    t2.join();
     cout << "done" << endl;
 
     return 0;
