@@ -32,6 +32,7 @@ public:
     void pickup_forks(int); // i.e. wish to eat. Sleep between 1 - 3 seconds
     void return_forks(int); // i.e. done eating. Sleep between 1 - 3 seconds
     void philoSim(Philosopher*, int); // Checks to see if courses have been eaten and controls thinking/eating cycles.
+    void atomPrint(string*); // to atomically print
 
 
 private:
@@ -41,6 +42,9 @@ private:
     bool forkInRightHand;
     int timeSinceLastEaten;
     int coursesConsumed;
+
+    mutex outputMutex; // Mutex for synchronizing output
+
 };
 
 int randomRangeGen(int, int, unsigned int);
